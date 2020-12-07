@@ -3,7 +3,6 @@
 ## Get started
 1. Bash `npm install -g @vue/cli  # choose typescript and unchoose babel`
 2. Bash `npm install`
-```
 
 ## How to use
 
