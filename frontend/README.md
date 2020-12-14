@@ -8,14 +8,18 @@
 
 1. Edit `./src/components/Test.vue`
 2. Bash `npm run fe-serve`
-3. Launch backend
+3. Launch [backend](../backend/README.md)
 4. Open `http://localhost:8001`
 
 ## How to develop
 
 1. Build apache2: `https://blog.csdn.net/qq_16166591/article/details/93797976`
 2. Bash `npm run fe-build`
-3. Bash `rm -rf /var/www/html` `mv ./dist /var/www/html`
+3. Bash `sudo rm -rf /var/www/html`
+4. Bash `sudo mv ./dist /var/www/html`
+5. Bash `sudo service apache2 restart`
+6. Launch [backend](../backend/README.md)
+7. Open `http://localhost:8001`
 
 ## blog about <a-button>
 https://blog.csdn.net/weixin_43583693/article/details/101296700
