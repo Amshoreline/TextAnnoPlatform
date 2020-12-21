@@ -87,7 +87,6 @@ export default class Test extends Vue {
             .catch(error => {
                 alert(error)
             })
-            .finally(() => {})
     }
 
     create_text() {
@@ -97,7 +96,7 @@ export default class Test extends Vue {
         }
         axios
             .post(
-                backend_address + '/create',
+                backend_address + '/create_text',
                 {'title': title, 'content': this.content},
             )
             .then(response => {
@@ -106,7 +105,6 @@ export default class Test extends Vue {
             .catch(error => {
                 alert(error)
             })
-            .finally(() => {})
     }
 
     upload_text() {}
