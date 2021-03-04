@@ -344,7 +344,7 @@ export default {
       window.history.pushState({}, 0, valiable)
       this.post_data.text_id = this.document_info.id
       // console.log(this.$route.query.index)
-      this.myEcharts()
+      this.refreshGraph()
     },
     // 换页
     pageChange(index) {
@@ -362,6 +362,7 @@ export default {
       let url = window.location.href
       let valiable = url.split('?')[0] + '?page=' + index + '&index=' + this.row_index
       window.history.pushState({}, 0, valiable)
+      this.refreshGraph()
     },
     // 请求文本标注
     async query() {
@@ -702,9 +703,73 @@ export default {
         _this.connectionAll()
       })
     },
+    refreshGraph() {
+      let _categories = []
+      let nodes = []
+      let _links = []
+      let ann = this.document_info.annotation
+      let res = this.document_info.relation
+      let len1 = this.labels.length
+      let len2 = ann.length
+      let len3 = res.length
+      for (let i = 0; i < len1; i++) {
+        let label_id = this.labels[i].id
+        _categories[i] = {
+          id: label_id,
+          name: this.labels[i].name,
+        }
+        nodes.push({
+          id: this.labels[i].id,
+          name: this.labels[i].name.substr(0, 5),
+          desc: this.labels[i].name,
+          symbolSize: 80,
+          label: {
+            normal: {
+              position: 'inside',
+            },
+          },
+          category: i,
+        })
+        // 标签对应的实体
+        for (let j = 0; j < len2; ++j) {
+          if (ann[j].label_id == label_id) {
+            let node_name = ann[j].entity
+            if (node_name.length > 3) {
+              node_name = node_name.substr(0, 3) + "..."
+            }
+            nodes.push({
+              id: ann[j].id,
+              name: node_name,
+              desc: ann[j].entity,
+              symbolSize: 50,
+              category: i,
+            })
+            _links.push({
+              source: label_id,
+              target: ann[j].id,
+              name: '',
+            })
+          }
+        }
+      }
+      for (let i = 0; i < len3; ++i) {
+        let r = res[i]
+        _links.push({
+          source: r.source,
+          target: r.target,
+          name: r.label,
+        })
+      }
+      let option = this.my_echart.getOption()
+      option.series[0].data = nodes
+      option.series[0].links = _links
+      option.series[0].categories = _categories
+      this.my_echart.setOption(option)
+    },
     myEcharts() {
       // 1. 假设 node 是标签+所有实体
       // 2. 把每个标签和其对应实体连上
+      /*
       let _categories = []
       let nodes = []
       let _links = []
@@ -762,7 +827,7 @@ export default {
           name: r.label,
         })
       }
-
+*/
       let option = {
         // 鼠标放上去节点提示框的配置
         tooltip: {
@@ -781,9 +846,9 @@ export default {
             //   show: true
             // },
             // 还原
-            // restore: {
-            //   show: true
-            // },
+            restore: {
+              show: true
+            },
             // 保存为图片
             saveAsImage: {
               show: true,
@@ -793,13 +858,9 @@ export default {
         // 标签列表
         legend: [{
           x: 'left', //图例位置
-          // selectedMode: 'single',
-          // data: categories.map((a) => {
+          // data: _categories.map((a) => {
           //   return a.name
-          // })
-          data: _categories.map((a) => {
-            return a.name
-          }),
+          // }),
         }],
         series: [{
           type: 'graph', // 类型:关系图
@@ -858,12 +919,13 @@ export default {
             },
           },
           // 数据(节点)
-          data: nodes,
-          links: _links,
-          categories: _categories,
+          // data: nodes,
+          // links: _links,
+          // categories: _categories,
         }],
       }
       this.my_echart.setOption(option)
+      this.refreshGraph()
       // my_echart.on('mouseover', function(params){
       //   console.log(res)
       // })
