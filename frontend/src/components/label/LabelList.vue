@@ -2,52 +2,53 @@
   <div>
     <Row style="height:50px" type="flex" align="middle">&nbsp;&nbsp;&nbsp;
       <Col span="1.1">
-        <Button @click="showAddModal = true">新建标签</Button>
+        <Button @click="show_add_modal = true">新建标签</Button>
       </Col>&nbsp;&nbsp;
       <Col>
       <Button @click="exportData()"><Icon type="ios-download-outline"></Icon>&nbsp;导出为 csv 文件</Button>
       </Col>
     </Row>
-    <Table highlight-row :columns="columns1" :data="data1" ref="table"></Table>
+    
+    <Table highlight-row :columns="columns" :data="data" ref="table"></Table>
 
-    <Modal v-model="showEditModal" title="编辑标签" @on-ok="editLabelOk">
-      <Form :model="editData" :label-width="80">
+    <Modal v-model="show_edit_modal" title="编辑标签" @on-ok="editLabelOk">
+      <Form :model="edit_data" :label-width="80">
         <FormItem label="标签编号">
-          <Input disabled v-model="editData.id"/>
+          <Input disabled v-model="edit_data.id"/>
         </FormItem>
         <FormItem label="标签名">
-          <Input v-model="editData.name" />
+          <Input v-model="edit_data.name" />
         </FormItem>
         <FormItem label="快捷键">
-          <Input v-model="editData.shortcut" />
+          <Input v-model="edit_data.shortcut" />
         </FormItem>
         <FormItem label="标签颜色">
-          <!-- <ColorPicker v-model="editData.bg_color" size="default"/> -->
-          <Select v-model="editData.bg_color" style="width:200px">
+          <!-- <ColorPicker v-model="edit_data.bg_color" size="default"/> -->
+          <Select v-model="edit_data.bg_color" style="width:200px">
         <Option v-for="item in tag_color" :value="item" :key="item">{{ item }}</Option>
       </Select>
         </FormItem>
-        <!-- <FormItem label="Text Color">
-          <ColorPicker v-model="editData.text_color" size="default"/>
-        </FormItem> -->
+        <!-- <Form_item label="Text Color">
+          <ColorPicker v-model="edit_data.text_color" size="default"/>
+        </Form_item> -->
       </Form>
     </Modal>
 
-    <!-- <Modal v-model="showAddModal" title="新增标签" @on-ok="addLabelOk">
+    <!-- <Modal v-model="show_add_modal" title="新增标签" @on-ok="addLabelOk">
       <CreateLabel ref="CreateLabel"></CreateLabel>
     </Modal> -->
 
-    <Modal v-model="showAddModal" title="新增标签" @on-ok="addLabel">
-      <Form :model="formItem" :label-width="100">
+    <Modal v-model="show_add_modal" title="新增标签" @on-ok="addLabel">
+      <Form :model="form_item" :label-width="100">
         <FormItem label="标签名">
-          <Input v-model="formItem.name" placeholder="输入标签名"/>
+          <Input v-model="form_item.name" placeholder="输入标签名"/>
         </FormItem>
         <FormItem label="快捷键">
-          <Input v-model="formItem.shortcut" placeholder="由 'alt' + 您所输入的键组成" />
+          <Input v-model="form_item.shortcut" placeholder="由 'alt' + 您所输入的键组成" />
         </FormItem>
         <FormItem label="标签颜色">
-          <!-- <ColorPicker v-model="formItem.bg_color" size="default"/> -->
-          <Select v-model="formItem.bg_color" style="width:200px">
+          <!-- <ColorPicker v-model="form_item.bg_color" size="default"/> -->
+          <Select v-model="form_item.bg_color" style="width:200px">
             <Option v-for="item in tag_color" :value="item" :key="item">{{ item }}</Option>
           </Select>
         </FormItem>
@@ -60,16 +61,15 @@
 </template>
 <script>
 import axios from 'axios'
-// import CreateLabel from "./CreateLabel"
 import URL from '../../setting'
 
 export default {
   data() {
     return {
-      showEditModal: false,
-      showAddModal: false,
-      queryData: {},
-      columns1: [
+      show_edit_modal: false,
+      show_add_modal: false,
+      tag_color: ['magenta', 'red', 'volcano', 'orange', 'gold', 'yellow', 'lime', 'green', 'cyan', 'blue', 'geekblue', 'purple', 'default'],
+      columns: [
         // {
         //   type: 'selection',
         //   width: 60,
@@ -178,16 +178,15 @@ export default {
           },
         },
       ],
-      data1: [],
-      tag_color: ['magenta', 'red', 'volcano', 'orange', 'gold', 'yellow', 'lime', 'green', 'cyan', 'blue', 'geekblue', 'purple', 'default'],
-      editData: {
+      data: [],
+      edit_data: {
         id: "",
         name: "",
         shortcut: "",
         bg_color: "",
         text_color: "",
       },
-      formItem: {
+      form_item: {
         name: null,
         shortcut: null,
         bg_color: 'default',
@@ -211,7 +210,7 @@ export default {
         .get(URL.get_label_list)
         .then(response => {
           if (response.status === 200) {
-            this.data1 = response.data.results
+            this.data = response.data.results
             this.$Loading.finish()
           }
         })
@@ -222,14 +221,14 @@ export default {
         .then(() => {})
     },
     addLabel() {
-      if (this.formItem.name == null) {
+      if (this.form_item.name == null) {
         this.$Message.warning('您没有输入标签名')
         return
       }
       axios({
         method: "post",
         url: URL.create_label,
-        data: this.formItem,
+        data: this.form_item,
       })
       .then(response => {
         if (response.status === 200) {
@@ -241,9 +240,23 @@ export default {
         this.$Message.error(error.toString())
       })
     },
+    saveLabel() {
+      axios
+        .post(URL.update_label, this.edit_data)
+        .then(response => {
+          if (response.status === 200) {
+            this.$Message.info(response.data)
+            this.search()
+          }
+        })
+        .catch(error => {
+          this.$Message.error(error.toString())
+        })
+        .then(() => {})
+    },
     editLabel(row) {
-      this.editData = row
-      this.showEditModal = true
+      this.edit_data = row
+      this.show_edit_modal = true
     },
     deleteLabel(row) {
       axios
@@ -268,26 +281,6 @@ export default {
     editLabelOk() {
       this.saveLabel()
     },
-    saveLabel() {
-      axios
-        .post(URL.update_label, this.editData)
-        .then(response => {
-          if (response.status === 200) {
-            this.$Message.info(response.data)
-            this.search()
-          }
-        })
-        .catch(error => {
-          this.$Message.error(error.toString())
-        })
-        .then(() => {})
-    },
-    // addLabelOk() {
-    //   this.$refs.CreateLabel.addLabel(this.search)
-    // },
   },
-  // components: {
-  //   CreateLabel,
-  // },
 }
 </script>

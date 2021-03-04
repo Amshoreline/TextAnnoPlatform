@@ -19,16 +19,19 @@
                   <Icon type="ios-analytics"></Icon>&nbsp;&nbsp;文本标注&nbsp;&nbsp;
                 <!-- </router-link> -->
               </MenuItem>
-              <Button style="position:fixed;right:50px;top:15px" @click="showDrawer = true"><Icon type="ios-help-circle-outline" />&nbsp;帮助&nbsp;</Button>
+              <Button style="position:fixed;right:50px;top:15px" @click="show_drawer = true"><Icon type="ios-help-circle-outline" />&nbsp;帮助&nbsp;</Button>
           </div>
         </Menu>
       </Header>
+
       <Content id='main' class="main" :style="{margin: '76px 12px 0 12px',paddingLeft:'10px',paddingRight:'10px', background: '#fff'}">
         <router-view/>
       </Content>
+
       <Footer class="layout-footer-center">2021-2027 &copy; carpe diem</Footer>
     </Layout>
-    <Drawer :draggable='true'  width="640" v-model="showDrawer" title='使用引导'>
+
+    <Drawer :draggable='true'  width="640" v-model="show_drawer" title='使用引导'>
       <p :style="pStyle">文本管理</p>
       <!-- <Divider>文本管理</Divider> -->
       <div class="demo-drawer-profile">
@@ -120,13 +123,13 @@
 export default {
   data() {
     return {
-      showDrawer: false,
+      show_drawer: false,
       pStyle: {
-          fontSize: '18px',
-          color: 'rgba(0,0,0,0.85)',
-          lineHeight: '24px',
-          display: 'block',
-          marginBottom: '16px',
+        fontSize: '18px',
+        color: 'rgba(0,0,0,0.85)',
+        lineHeight: '24px',
+        display: 'block',
+        marginBottom: '16px',
       },
     }
   },

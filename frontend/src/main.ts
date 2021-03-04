@@ -6,15 +6,16 @@ import store from './store'
 import ViewUI from 'view-design'
 import 'view-design/dist/styles/iview.css'
 import router from './router'
-
 import jsPlumb from 'jsplumb'
+import echarts from 'echarts'
+
 
 Vue.prototype.$jsPlumb = jsPlumb.jsPlumb
+Vue.prototype.$echarts = echarts
 Vue.config.productionTip = false
 
 Vue.use(ViewUI)
 Vue.use(require('vue-shortkey'))
-
 
 new Vue({
     store,

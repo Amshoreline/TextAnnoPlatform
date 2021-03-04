@@ -1,11 +1,11 @@
 <template>
   <div class="layout" style="margin:10px 0">
     <Layout>
-      <Sider ref="side" hide-trigger collapsible :collapsed-width="0" v-model="isCollapsed" width="400" :style="{background: '#fff'}">
+      <Sider ref="side" hide-trigger collapsible :collapsed-width="0" v-model="is_collapsed" width="400" :style="{background: '#fff'}">
         <!-- <Sider hide-trigger width="380" :style="{background: '#fff'}"> -->
-        <Menu :active-name="rowIndex" theme="light" width="auto" :style="{height:'100%'}">
+        <Menu :active-name="row_index" theme="light" width="auto" :style="{height:'100%'}">
           <MenuGroup title="　　　　　　　　 　标注文本">
-            <MenuItem v-for="(doc, index) in data1" :name="index.toString()" :key=index :data-preview-id="index" @click.native="rowChange(index)">
+            <MenuItem v-for="(doc, index) in cur_data" :name="index.toString()" :key=index :data-preview-id="index" @click.native="rowChange(index)">
               <span style="max-height:41px; width:100%;display:block;overflow:hidden;text-align:justify">
                 <Icon type="ios-checkmark" size='24' color="#33a060" v-show="doc.is_checked"/>{{ doc.content.slice(0, 100) }}
               </span>
@@ -18,6 +18,7 @@
           </MenuGroup>
         </Menu>
       </Sider>
+
       <Layout>
         <Content :style="{padding: '10px', background: '#fff'}">
           <!-- 文本 -->
@@ -69,21 +70,27 @@
                 <Icon type="md-checkmark" /> &nbsp;Check&nbsp;&nbsp;
               </Button>&nbsp;&nbsp;
             </Tooltip>
+            
             <Tooltip content="标记为未完成标注" placement="bottom-start">
               <Button type="warning" ghost @click="uncheckAnnotation">
               <Icon type="md-close" /> Uncheck 
               </Button>&nbsp;&nbsp;
             </Tooltip>
+
             <Tooltip content="选择两个实体可建立关系" placement="bottom-start">
               <Button type="primary" ghost @click="addRelationship">增加关系</Button>&nbsp;&nbsp;
             </Tooltip>
-            <Button type="primary" ghost @click="showJsplumb">隐藏关系</Button>&nbsp;&nbsp;
+
+            <Button type="primary" ghost @click="showLinks">隐藏关系</Button>&nbsp;&nbsp;
+
             <Tooltip content="点击上传 json 格式文件实现标注" placement="bottom-start">
-              <Button type="primary" ghost @click="showModal = true">上传标注</Button>&nbsp;&nbsp;
+              <Button type="primary" ghost @click="show_modal = true">上传标注</Button>&nbsp;&nbsp;
             </Tooltip>
+
             <Poptip confirm title="您确认清空该文本的关系标注吗？" @on-ok="clearAnn(0)">
               <Button type="primary" ghost>清空关系</Button>&nbsp;&nbsp;
             </Poptip>
+
             <Poptip confirm title="您确认清空该文本的所有标注吗？" @on-ok="clearAnn(1)">
               <Button type="primary" ghost>清空标注</Button>&nbsp;&nbsp;
             </Poptip>
@@ -92,21 +99,23 @@
           </Row>
           <!-- 显示 -->
           <Row>
-            <Col span="10">
+            <Col span="24">
               <Card style="height:100%;margin-right:10px">
                 <span style="margin:0 10px 0px 5px"><Icon type="md-paper-plane" /></span>实体显示
                 <div style="margin:8px 0;"></div>
                 <div style="margin-left:7px">
-                  <Tag style="margin-right:5px" v-for="(para, index) in entities" :key="index" class="tag1" :color="para.bg_color" size='medium'>{{para.text}}</Tag>
+                  <Tag style="margin-right:10px" v-for="(para, index) in entities" :key="index" class="tag1" :color="para.bg_color" size='medium'>{{para.text}}</Tag>
                 </div>
               </Card>
             </Col>
-            <Col span="14">
+          </Row>
+          <Row>
+            <Col span="24">
               <Card style="height:100%">
                 <span style="margin:0 10px 0 8px"><Icon type="ios-pulse" /></span>关系显示
                 <div style="margin:8px 0;"></div>
                 <div style="padding-left:7px">
-                  <Tag class='tag1' style='height:36px;line-height:32px;margin-right:5px' v-for="(para, index) in relations" :key='index' >
+                  <Tag class='tag1' style='height:36px;line-height:32px;margin-right:10px' v-for="(para, index) in relations" :key='index' >
                     <Tag type="border" color="primary" size='medium'>{{para.source}}</Tag>
                     <span style="font-size:12px;color:blue">&nbsp;&nbsp;{{para.label}}</span><Icon type="md-arrow-dropright" color='blue' />&nbsp;
                     <Tag type="border" color="primary" size='medium'>{{para.target}}</Tag>
@@ -116,14 +125,15 @@
             </Col>
           </Row>
           <Card style="margin-top:10px">
-            <div style="text-align:center">
+            <div id="graph" style="text-align:center; width:100%; min-height:600px">
               <h1>显示关系图谱</h1>
             </div>
           </Card>
         </Content>
       </Layout>
     </Layout>
-    <Modal v-model="showModal" title="批量上传(json)" width="828">
+
+    <Modal v-model="show_modal" title="批量上传(json)" width="828">
       <Alert show-icon>
         标注格式
         <template slot="desc"><p style="font-family: 'Times New Roman'">文件内容格式为 json，每个标注必须有起始位置、终止位置、标签类型三个键，下面可以输入每个键的名字 <br>
@@ -158,6 +168,7 @@
         </div>
       </Upload>
     </Modal>
+    
     <BackTop></BackTop>
   </div>
 </template>
@@ -169,8 +180,9 @@ import URL from '../../setting'
 export default {
   data() {
     return {
-      showModal: false,
-      showPlumb: true,
+      show_modal: false,
+      show_plumb: true,
+      is_collapsed: false,
       upload_ann_url: URL.upload_ann,
       post_data: {
         text_id: '',
@@ -178,11 +190,9 @@ export default {
         start_offset_key: 'start_offset',
         end_offset_key: 'end_offset',
       },
-      height: 110,
-      split1: 0.4,
-      isCollapsed: false,
+      my_echart: null,
       jsPlumb: null,
-      jsplumbSetting: { // 很多连接线，它们的样式是相同的，所以定义一个默认配置
+      jsplumb_setting: { // 很多连接线，它们的样式是相同的，所以定义一个默认配置
         Anchor: 'Top', // Anchor:['Top', 'Bottom'],'Continuous',
         Connector: 'Flowchart',
         Container: 'textContainer',
@@ -269,25 +279,17 @@ export default {
           borderColor: '#fff',
         },
       },
-      rowIndex: this.$route.query.index,
-      documentInfo: {
-        // id: '0',
-        // title: "",
-        // content: "",
-        // is_checked: false,
-        // annotation: [{}],
-        // relation: [{}],
-      },
       page_options: {
         total: 0,
         page: 1 * this.$route.query.page,
         page_size: 10,
       },
+      row_index: this.$route.query.index,
+      entity: '',
       start_offset: 0,
       end_offset: 0,
-      entity: '',
       data: [],
-      data1: [
+      cur_data: [
         {
           id: 0,
           title: "",
@@ -300,16 +302,14 @@ export default {
         }, // 空集合active-name无效的解决方案
       ],
       labels: [],
+      document_info: {},
     }
   },
   methods: {
     handleSuccess(response) {
-      this.query_label()
+      this.queryLabel()
       this.query()
       // this.$Message.success("已上传 " + response.data + ' 个标注')
-    },
-    handleError(response) {
-      this.$Message.error("上传失败: json解析错误")
     },
     handleError(response) {
       this.$Message.error("上传失败: json解析错误")
@@ -320,6 +320,7 @@ export default {
         desc: '文件【' + file.name + '】格式错误，请选择 .txt 或 .json',
       })
     },
+    // 隐藏侧边文本
     collapsedSider() {
       this.$refs.side.toggleCollapse()
       let _this = this
@@ -330,43 +331,42 @@ export default {
         window.clearTimeout(t)
       }, 300)
     },
+    // 换行
     rowChange(index) {
-      this.rowIndex = index.toString()
-      this.documentInfo = this.data1[index]
-      this.documentInfo.annotation = this.data1[index].annotation
-      this.documentInfo.relation = this.data1[index].relation
+      this.row_index = index.toString()
+      this.document_info = this.cur_data[index]
+      this.document_info.annotation = this.cur_data[index].annotation
+      this.document_info.relation = this.cur_data[index].relation
       this.$route.query.index = index + ''
       // 改变地址
       let url = window.location.href
       let valiable = url.split('&')[0] + '&index=' + index
       window.history.pushState({}, 0, valiable)
-      this.post_data.text_id = this.documentInfo.id
+      this.post_data.text_id = this.document_info.id
       // console.log(this.$route.query.index)
+      this.myEcharts()
     },
+    // 换页
     pageChange(index) {
-      this.rowIndex = "0"
+      this.row_index = "0"
       this.page_options.page = index
       // 需要显示开始数据的index,(因为数据是从0开始的，页码是从1开始的，需要-1)
       let _start = (index - 1) * this.page_options.page_size
       // 需要显示结束数据的index
       let _end = index * this.page_options.page_size
       // 截取需要显示的数据
-      this.data1 = this.data.slice(_start, _end)
-      this.documentInfo = this.data[_start] // 第一条数据
+      this.cur_data = this.data.slice(_start, _end)
+      this.document_info = this.data[_start] // 第一条数据
       this.$route.query.page = index
       // 改变地址
       let url = window.location.href
-      let valiable = url.split('?')[0] + '?page=' + index + '&index=' + this.rowIndex
+      let valiable = url.split('?')[0] + '?page=' + index + '&index=' + this.row_index
       window.history.pushState({}, 0, valiable)
     },
-    // onCurrentChange(currentRow) {
-    //   this.documentInfo = currentRow
-    //   this.documentInfo.annotation = currentRow.annotation
-    //   this.documentInfo.relation = currentRow.relation
-    // },
-    query() {
+    // 请求文本标注
+    async query() {
       this.$Loading.start()
-      axios
+      await axios
         .get(
           URL.get_text_list,
         )
@@ -375,18 +375,17 @@ export default {
             this.data = response.data.results // 所有数据
             this.page_options.total = response.data.count // 总数
             let begin = (this.page_options.page - 1) * this.page_options.page_size
-            let now = begin + this.rowIndex * 1
-            this.documentInfo = this.data[now] // 第一条数据
-            this.documentInfo.annotation = this.data[now].annotation // 第一条数据的标注
-            this.documentInfo.relation = this.data[now].relation // 第一条数据的标注
-
-            this.data1 = [] // 当前数据
+            let now = begin + this.row_index * 1
+            this.document_info = this.data[now] // 第一条数据
+            this.document_info.annotation = this.data[now].annotation // 第一条数据的标注
+            this.document_info.relation = this.data[now].relation // 第一条数据的标注
+            this.cur_data = [] // 当前数据
             for (let i = 0; i < this.page_options.page_size && i + begin < this.page_options.total; i++) {
-              this.data1.push(this.data[i + begin])
+              this.cur_data.push(this.data[i + begin])
             }
           }
           this.$Loading.finish()
-          this.post_data.text_id = this.documentInfo.id
+          this.post_data.text_id = this.document_info.id
         })
         .catch(error => {
           this.$Loading.error()
@@ -394,8 +393,9 @@ export default {
         })
         .then(() => {})
     },
-    query_label() {
-      axios
+    // 请求标签
+    async queryLabel() {
+      await axios
         .get(URL.get_label_list)
         .then(response => {
           if (response.status === 200) {
@@ -407,7 +407,18 @@ export default {
         })
         .then(() => {})
     },
-    // 当选中了文本后，能够得到start/end_offset */
+    // 获取label的信息 */
+    getLabelById(label_id) {
+      for (let label of this.labels) {
+        if (label.id === label_id) {
+          return label
+        }
+      }
+    },
+    createRandomId() {
+      return (Math.random() * 10000000).toString(16).substr(0, 4) + '-' + (new Date()).getTime() + '-' + Math.random().toString().substr(2, 5)
+    },
+    // 当选中了文本后，能够得到start/end_offset
     setSelectedRange() {
       if (window.getSelection()) {
         const range = window.getSelection().getRangeAt(0)
@@ -422,20 +433,20 @@ export default {
         // console.log(start, end, this.entity)
       }
     },
-    // 判断范围是否合理 */
+    // 判断范围是否合理
     validRange() {
       if (this.start_offset === this.end_offset) { // 没有距离
         return false
       }
       if ( // 超过边界
-        this.start_offset > this.documentInfo.content.length ||
-        this.end_offset > this.documentInfo.content.length ||
+        this.start_offset > this.document_info.content.length ||
+        this.end_offset > this.document_info.content.length ||
         this.start_offset < 0 || this.end_offset < 0
       ) {
         return false
       }
       // 交叉的
-      let arr = this.documentInfo.annotation.concat()
+      let arr = this.document_info.annotation.concat()
       for (let e of arr) {
         if (e.start_offset < this.end_offset && e.end_offset > this.start_offset) {
           this.removeAnnotation(true, e.id)
@@ -444,14 +455,14 @@ export default {
       }
       return true
     },
-    // 添加标注 */
+    // 添加标注
     annotate(id) {
       if (this.validRange()) {
-        this.documentInfo.annotation.push(
+        this.document_info.annotation.push(
           {
             id: this.createRandomId(),
             label_id: id, // Expected property shorthand in object literal
-            label_type: this.getLabel(id).name,
+            label_type: this.getLabelById(id).name,
             entity: this.entity,
             start_offset: this.start_offset,
             end_offset: this.end_offset,
@@ -462,81 +473,55 @@ export default {
         this.$Message.error('标注有误')
       }
     },
-    connectionAll() {
-      let _this = this
-      if (this.documentInfo.relation) {
-        this.documentInfo.relation.forEach( (value) => { // function(value)
-          _this.jsPlumb.connect({
-            source: value.source,
-            target: value.target,
-            overlays: [
-              ['Arrow', {width: 8, length: 8, location: 1}],
-              ['Custom', {
-                create: (component) => {
-                  return $("<span style='background-color: white; padding:4px 4px;line-height:1em;border-radius:7px;color:#2f54eb;font-weight:bold;font-family:serif;'>" + value.label + "</span>")
-                },
-                events: {
-                  click: (labelOverlay, originalEvent) => {
-                    _this.updateRelationship(labelOverlay.getElement(), labelOverlay.id)
-                  },
-                  contextmenu: (labelOverlay, originalEvent) => {
-                    originalEvent.preventDefault()
-                    _this.jsPlumb.deleteConnection(labelOverlay.component)
-                    _this.removeRelation(labelOverlay.id)
-                  },
-                },
-                location: 0.5,
-                id: value.id + 'r',
-              }],
-            ],
-          })
-          // _this.jsPlumb.draggable(value.source) 加上又报错
-          // _this.jsPlumb.draggable(value.target)
-        })
-      }
-    },
-    // 点击关系标签，可以修改 */
-    updateRelationship(e, id) {
-      let index = 0
-      let label = ''
-      for (let relation of this.documentInfo.relation) {
-        if (relation.id + 'r' === id) {
-          break
+    // 更新标注
+    updateAnnotation() {
+      let postData = JSON.parse(JSON.stringify(this.document_info))
+      postData.annotation = JSON.stringify(this.document_info.annotation)
+      postData.relation = JSON.stringify(this.document_info.relation)
+      axios
+      .post(URL.update_ann, postData)
+      .then(response => {
+        if (response.status === 200) {
+          return
         }
-        index++
+      })
+      .catch(error => {
+        this.$Message.error(error.toString())
+      })
+      .then(() => {})
+    },
+    // 右键取消标注：文字颜色，第几条，offset
+    removeAnnotation(isAnn, id) {
+      if (isAnn) { // 判断如果是标注
+        for (let [index, annotation] of Object.entries(this.document_info.annotation)) {
+          if (annotation.id === id) {
+            $(this.source).removeClass('source')
+            $(this.target).removeClass('target')
+            this.source = null
+            this.target = null
+            this.document_info.annotation.splice(index, 1)
+            break
+          }
+        }
+        this.document_info.relation = this.document_info.relation.filter(
+          e => {
+            return (e.source !== id && e.target !== id)
+          },
+        )
+        this.updateAnnotation()
       }
-      this.$Modal.confirm({
-        render: (h) => {
-          return h('Input', {
-            props: {
-              value: this.value,
-              autofocus: true,
-              placeholder: '请输入关系',
-            },
-            on: {
-              input: (val) => {
-                label = val
-              },
-            },
-          })
-        },
-        onOk: () => {
-          this.$Message.success('设置成功')
-          e.innerHTML = label
-          this.documentInfo.relation[index].label = label
-          this.updateAnnotation()
-        },
-      })
     },
-    // 清空原来的连接重新连接 */
-    overLink() {
-      let _this = this
-      this.$nextTick(() => {
-        _this.jsPlumb.reset()
-        _this.connectionAll()
-      })
+    // 标记文本
+    checkAnnotation() {
+      this.document_info.is_checked = true
+      this.updateAnnotation()
     },
-    // 标记关系结点 */
+    // 取消标记
+    uncheckAnnotation() {
+      this.document_info.is_checked = false
+      this.updateAnnotation()
+    },
+    // 标记关系结点
     MarkNode(event) {
       let el = $(event.currentTarget)
       if (el.hasClass('tag')) {
@@ -557,7 +542,7 @@ export default {
         this.turn = '1'
       }
     },
-    // 增加关系 */
+    // 增加关系
     addRelationship() {
       let s = $(this.source)
       let t = $(this.target)
@@ -597,7 +582,7 @@ export default {
         ],
       })
 
-      this.documentInfo.relation.push(
+      this.document_info.relation.push(
         {
           id: r_id,
           source: s_id,
@@ -609,101 +594,304 @@ export default {
       )
       this.updateAnnotation()
     },
-    // 清空标注 */
-    clearAnn(type) {
-      if (type === 0) {
-        this.documentInfo.relation = []
-      } else {
-        this.documentInfo.annotation = []
-        this.documentInfo.relation = []
-      }
-      this.jsPlumb.reset()
-      this.updateAnnotation()
-      this.$Message.success('已清空')
-    },
+    // 删除关系
     removeRelation(id) {
-      for (let [index, relation] of Object.entries(this.documentInfo.relation)) {
+      for (let [index, relation] of Object.entries(this.document_info.relation)) {
         if (relation.id + 'r' === id) {
-          this.documentInfo.relation.splice(index, 1)
+          this.document_info.relation.splice(index, 1)
           break
         }
       }
       this.updateAnnotation()
       this.$Message.success('删除成功')
     },
-    updateAnnotation() {
-      let postData = JSON.parse(JSON.stringify(this.documentInfo))
-      postData.annotation = JSON.stringify(this.documentInfo.annotation)
-      postData.relation = JSON.stringify(this.documentInfo.relation)
-      axios
-      .post(URL.update_ann, postData)
-      .then(response => {
-        if (response.status === 200) {
-          return
+    // 点击关系标签，可以修改
+    updateRelationship(e, id) {
+      let index = 0
+      let label = ''
+      for (let relation of this.document_info.relation) {
+        if (relation.id + 'r' === id) {
+          break
         }
+        index++
+      }
+      this.$Modal.confirm({
+        render: (h) => {
+          return h('Input', {
+            props: {
+              value: this.value,
+              autofocus: true,
+              placeholder: '请输入关系',
+            },
+            on: {
+              input: (val) => {
+                label = val
+              },
+            },
+          })
+        },
+        onOk: () => {
+          this.$Message.success('设置成功')
+          e.innerHTML = label
+          this.document_info.relation[index].label = label
+          this.updateAnnotation()
+        },
       })
-      .catch(error => {
-        this.$Message.error(error.toString())
-      })
-      .then(() => {})
     },
-    // 右键取消标注：文字颜色，第几条，offset */
-    removeAnnotation(isAnn, id) {
-      if (isAnn) { // 判断如果是标注
-        for (let [index, annotation] of Object.entries(this.documentInfo.annotation)) {
-          if (annotation.id === id) {
-            $(this.source).removeClass('source')
-            $(this.target).removeClass('target')
-            this.source = null
-            this.target = null
-            this.documentInfo.annotation.splice(index, 1)
-            break
-          }
-        }
-        this.documentInfo.relation = this.documentInfo.relation.filter(
-          e => {
-            return (e.source !== id && e.target !== id)
-          },
-        )
-        this.updateAnnotation()
+    // 清空标注
+    clearAnn(type) {
+      if (type === 0) {
+        this.document_info.relation = []
+      } else {
+        this.document_info.annotation = []
+        this.document_info.relation = []
+      }
+      this.jsPlumb.reset()
+      this.updateAnnotation()
+      this.$Message.success('已清空')
+    },
+    // 连接所有关系
+    connectionAll() {
+      let _this = this
+      if (this.document_info.relation) {
+        this.document_info.relation.forEach( (value) => { // function(value)
+          _this.jsPlumb.connect({
+            source: value.source,
+            target: value.target,
+            overlays: [
+              ['Arrow', {width: 8, length: 8, location: 1}],
+              ['Custom', {
+                create: (component) => {
+                  return $("<span style='background-color: white; padding:4px 4px;line-height:1em;border-radius:7px;color:#2f54eb;font-weight:bold;font-family:serif;'>" + value.label + "</span>")
+                },
+                events: {
+                  click: (labelOverlay, originalEvent) => {
+                    _this.updateRelationship(labelOverlay.getElement(), labelOverlay.id)
+                  },
+                  contextmenu: (labelOverlay, originalEvent) => {
+                    originalEvent.preventDefault()
+                    _this.jsPlumb.deleteConnection(labelOverlay.component)
+                    _this.removeRelation(labelOverlay.id)
+                  },
+                },
+                location: 0.5,
+                id: value.id + 'r',
+              }],
+            ],
+          })
+          // _this.jsPlumb.draggable(value.source) 加上又报错
+          // _this.jsPlumb.draggable(value.target)
+        })
       }
     },
-    checkAnnotation() {
-      this.documentInfo.is_checked = true
-      this.updateAnnotation()
-    },
-    uncheckAnnotation() {
-      this.documentInfo.is_checked = false
-      this.updateAnnotation()
-    },
-    showJsplumb() {
-      if (this.showPlumb) {
+    // 显示/隐藏关系连接
+    showLinks() {
+      if (this.show_plumb) {
         this.jsPlumb.reset()
-        this.showPlumb = false
+        this.show_plumb = false
       } else {
         this.connectionAll()
-        this.showPlumb = true
+        this.show_plumb = true
       }
     },
-    // 获取label的信息 */
-    getLabel(label_id) {
-      for (let label of this.labels) {
-        if (label.id === label_id) {
-          return label
+    // 清空原来的连接重新连接
+    overLinks() {
+      let _this = this
+      this.$nextTick(() => {
+        _this.jsPlumb.reset()
+        _this.connectionAll()
+      })
+    },
+    myEcharts() {
+      // 1. 假设 node 是标签+所有实体
+      // 2. 把每个标签和其对应实体连上
+      let _categories = []
+      let nodes = []
+      let _links = []
+      let ann = this.document_info.annotation
+      let res = this.document_info.relation
+      let len1 = this.labels.length
+      let len2 = ann.length
+      let len3 = res.length
+      // console.log(res)
+      for (let i = 0; i < len1; i++) {
+        let label_id = this.labels[i].id
+        _categories[i] = {
+          id: label_id,
+          name: this.labels[i].name,
+        }
+        nodes.push({
+          id: this.labels[i].id,
+          name: this.labels[i].name.substr(0, 5),
+          desc: this.labels[i].name,
+          symbolSize: 80,
+          label: {
+            normal: {
+              position: 'inside',
+            },
+          },
+          category: i,
+        })
+        // 标签对应的实体
+        for (let j = 0; j < len2; ++j) {
+          if (ann[j].label_id == label_id) {
+            let node_name = ann[j].entity
+            if (node_name.length > 3) {
+              node_name = node_name.substr(0, 3) + "..."
+            }
+            nodes.push({
+              id: ann[j].id,
+              name: node_name,
+              desc: ann[j].entity,
+              symbolSize: 50,
+              category: i,
+            })
+            _links.push({
+              source: label_id,
+              target: ann[j].id,
+              name: '',
+            })
+          }
         }
       }
+      for (let i = 0; i < len3; ++i) {
+        let r = res[i]
+        _links.push({
+          source: r.source,
+          target: r.target,
+          name: r.label,
+        })
+      }
+
+      let option = {
+        // 鼠标放上去节点提示框的配置
+        tooltip: {
+          formatter: (x) => {
+            return x.data.desc
+          },
+        },
+        // 工具箱
+        toolbox: {
+          // 显示工具箱
+          show: true,
+          x: '1px',
+          y: '20px',
+          feature: {
+            // mark: {
+            //   show: true
+            // },
+            // 还原
+            // restore: {
+            //   show: true
+            // },
+            // 保存为图片
+            saveAsImage: {
+              show: true,
+            },
+          },
+        },
+        // 标签列表
+        legend: [{
+          x: 'left', //图例位置
+          // selectedMode: 'single',
+          // data: categories.map((a) => {
+          //   return a.name
+          // })
+          data: _categories.map((a) => {
+            return a.name
+          }),
+        }],
+        series: [{
+          type: 'graph', // 类型:关系图
+          layout: 'force', // 图的布局，类型为力导图
+          symbolSize: 30, // 调整节点的大小，不过也可以在data里面分类设置
+          roam: true,
+          draggable: true, // 是否可拖拽
+          focusNodeAdjacency: true, // 当鼠标移动到节点上，突出显示节点以及节点的边和邻接节点
+          legendHoverLinks: true, // 是否启用图例 hover(悬停) 时的联动高亮
+          edgeSymbol: ['circle', 'arrow'], // 边的两端的形状
+          edgeSymbolSize: [2, 10], // 边两端的标记类型
+          edgeLabel: { // 边上的文字
+            normal: {
+              textStyle: { // 文字样式
+                fontSize: 16,
+              },
+              show: true,
+              formatter: (x) => { // 通过回调函数设置连线上的标签
+                return x.data.name
+              },
+            },
+          },
+          symbol: 'circle',
+          symbolSize: 50, // [100, 30]
+          force: {
+            repulsion: [100, 1000], // 节点之间的斥力因子。支持数组表达斥力范围，值越大斥力越大。
+            edgeLength: [10, 200],
+            gravity : 0.15, // 节点受到的向中心的引力因子。该值越大节点越往中心点
+          },
+          // 连线的样式
+          lineStyle: {
+            normal: {
+              width: 2,
+              color: '#4b565b',
+            },
+          },
+          // 节点的文字
+          label: {
+            normal: {
+              show: true,
+              // position : 'top',
+              textStyle : { //标签的字体样式
+                color : '#f0f0f0', //字体颜色
+                //fontStyle : 'normal',//文字字体的风格 'normal'标准 'italic'斜体 'oblique' 倾斜
+                //fontWeight : 'normal',//'normal'标准'bold'粗的'bolder'更粗的'lighter'更细的或100 | 200 | 300 | 400...
+                //fontFamily : 'sans-serif', //文字的字体系列
+                fontSize : 16, //字体大小
+                width: 10,
+                overflow: 'truncate',
+                textBorderColor: '#676767',
+                textBorderWidth: 2,
+              },
+              // formatter: function(params) { // 回调函数，你期望节点标签上显示什么
+              //   return params.data.label
+              // },
+            },
+          },
+          // 数据(节点)
+          data: nodes,
+          links: _links,
+          categories: _categories,
+        }],
+      }
+      this.my_echart.setOption(option)
+      // my_echart.on('mouseover', function(params){
+      //   console.log(res)
+      // })
     },
-    createRandomId() {
-      return (Math.random() * 10000000).toString(16).substr(0, 4) + '-' + (new Date()).getTime() + '-' + Math.random().toString().substr(2, 5)
+    async init() {
+      await this.queryLabel()
+      await this.query()
+      let echarts = require('echarts')
+      this.my_echart = echarts.init(document.getElementById('graph'))
+      this.myEcharts()
     },
+  },
+  mounted() {
+    this.init()
+    this.jsPlumb = this.$jsPlumb.getInstance(this.jsplumb_setting) // 不放init里
+    // 窗口大小改变时重新画 */
+    let _this = this
+    window.addEventListener('resize', () => {
+      _this.jsPlumb.repaintEverything()
+    })
   },
   computed: {
     // 把标注按offset排列 */
     sortedEntityPositions() {
-      if (this.documentInfo.annotation == null) {
+      if (this.document_info.annotation == null) {
         return null
       }
-      return this.documentInfo.annotation.sort((a, b) => a.start_offset - b.start_offset)
+      return this.document_info.annotation.sort((a, b) => a.start_offset - b.start_offset)
     },
     // 切分标注 */
     chunks() {
@@ -713,7 +901,7 @@ export default {
         // res.push(
         //   {
         //     id: '',
-        //     text: this.documentInfo.content.slice(),
+        //     text: this.document_info.content.slice(),
         //     bg_color: "#fff",
         //   },
         // )
@@ -733,11 +921,11 @@ export default {
               start_offset: tuple.start_offset,
               end_offset: tuple.end_offset,
               text: tuple.entity,
-              // this.documentInfo.content.slice(
+              // this.document_info.content.slice(
               //   tuple.start_offset,
               //   tuple.end_offset
               // )
-              bg_color: this.getLabel(tuple.label_id).bg_color,
+              bg_color: this.getLabelById(tuple.label_id).bg_color,
             },
           )
           left = tuple.end_offset
@@ -747,7 +935,7 @@ export default {
               id: '',
               start_offset: left,
               end_offset: tuple.start_offset,
-              text: this.documentInfo.content.slice(left, tuple.start_offset),
+              text: this.document_info.content.slice(left, tuple.start_offset),
               bg_color: "#fff",
             },
           )
@@ -756,30 +944,30 @@ export default {
               id: tuple.id,
               start_offset: tuple.start_offset,
               end_offset: tuple.end_offset,
-              // text: this.documentInfo.content.slice(
+              // text: this.document_info.content.slice(
               //   tuple.start_offset,
               //   tuple.end_offset
               // ),
               text: tuple.entity,
-              bg_color: this.getLabel(tuple.label_id).bg_color,
+              bg_color: this.getLabelById(tuple.label_id).bg_color,
             },
           )
           left = tuple.end_offset
         }
       }
-      if (left < this.documentInfo.content.length) {
+      if (left < this.document_info.content.length) {
         res.push(
           {
             id: '',
             start_offset: left,
-            end_offset: this.documentInfo.content.length,
-            text: this.documentInfo.content.slice(left),
+            end_offset: this.document_info.content.length,
+            text: this.document_info.content.slice(left),
             bg_color: "#fff",
           },
         )
       }
       // 加在这里可以 */
-      this.overLink()
+      this.overLinks()
       return res
     },
     entities() {
@@ -801,7 +989,7 @@ export default {
             {
               label_type: tuple.label_type,
               text: tuple.entity,
-              bg_color: this.getLabel(tuple.label_id).bg_color,
+              bg_color: this.getLabelById(tuple.label_id).bg_color,
             },
           )
         }
@@ -810,8 +998,8 @@ export default {
     },
     relations() {
       let res = []
-      if (this.documentInfo.relation) {
-        for (let tuple of this.documentInfo.relation) {
+      if (this.document_info.relation) {
+        for (let tuple of this.document_info.relation) {
           res.push(
             {
               source: tuple.source_entity,
@@ -824,32 +1012,8 @@ export default {
       return res
     },
     rotateIcon() {
-      return this.isCollapsed ? 'rotate-icon' : ''
+      return this.is_collapsed ? 'rotate-icon' : ''
     },
-  },
-  // created(){
-  //   console.log(this.$route.query.index)
-  // },
-  mounted() {
-    // console.log(this.$route.query.index)
-    this.query_label()
-    this.query()
-    let _this = this
-    this.jsPlumb = this.$jsPlumb.getInstance(this.jsplumbSetting)
-    // 为啥绑定不了 */
-    // this.jsPlumb.bind('click', function(conn, e) {
-    //   // if (window.prompt('确定删除所点击的连接吗？ 输入1确定') === '1') {
-    //     console.log('1111')
-    //     _this.jsPlumb.deleteConnection(conn)
-    //   // }
-    // })
-    // this.jsPlumb.bind("dblclick", function(c,e) {
-    //   console.log('111')
-    // })
-    // 窗口大小改变时重新画 */
-    window.addEventListener('resize', () => {
-      _this.jsPlumb.repaintEverything()
-    })
   },
 }
 </script>

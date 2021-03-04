@@ -10,16 +10,17 @@
           <MenuItem name="1-2" @click.native="showAddText2 = true">上传多个文件</MenuItem>
           <MenuItem name="1-3" @click.native="showAddText3 = true">批量上传 ( json )</MenuItem>
       </Submenu>
+
       <Submenu name="2">
         <template slot="title">
           <Icon type="md-download"></Icon>
           导出数据
         </template>
-          <MenuItem @click.native="export_data('text')" name="2-1">导出文本</MenuItem>
-          <MenuItem @click.native="export_data('ann')" name="2-2">导出实体标注</MenuItem>
-          <MenuItem @click.native="export_data('ann_r')" name="2-3">导出关系标注</MenuItem>
-          <MenuItem @click.native="export_data('ann_b')" name="2-4">导出实体和关系标注</MenuItem>
-          <MenuItem @click.native="export_data('data')" name="2-5">导出所有信息</MenuItem>
+          <MenuItem @click.native="exportData('text')" name="2-1">导出文本</MenuItem>
+          <MenuItem @click.native="exportData('ann')" name="2-2">导出实体标注</MenuItem>
+          <MenuItem @click.native="exportData('ann_r')" name="2-3">导出关系标注</MenuItem>
+          <MenuItem @click.native="exportData('ann_b')" name="2-4">导出实体和关系标注</MenuItem>
+          <MenuItem @click.native="exportData('data')" name="2-5">导出所有信息</MenuItem>
       </Submenu>
       
       <div style="position:absolute;right:0">
@@ -27,8 +28,7 @@
       <Button @click="handleSelectAll(true)">设置全选</Button>&nbsp;
       <Button @click="handleSelectAll(false)">取消全选</Button>
       </div>
-    </Menu>
-    <br>
+    </Menu><br>
 
     <Table highlight-row :columns="columns1" :data="nowData" ref="selection">
       <template slot-scope="{ row }" slot="is_checked">
@@ -62,6 +62,7 @@
         </FormItem>
       </Form>
     </Modal>
+
     <Modal v-model="showAddText1" title="新建文本上传" @on-ok="create_text" width="666">
       <Form :model="addText" :label-width="56" >
         <Col span="23">
@@ -76,6 +77,7 @@
         </Col>
       </Form>
     </Modal>
+
     <Modal v-model="showAddText2" title="上传多个文件" width="666">
       <Alert show-icon>
         文件格式
@@ -97,6 +99,7 @@
         </div>
       </Upload>
     </Modal>
+
     <Modal v-model="showAddText3" title="批量上传(json)" width="666">
       <Alert show-icon>
         文本格式
@@ -312,7 +315,7 @@ export default {
         desc: '文件【' + file.name + '】格式错误，请选择 .txt 或 .json',
       })
     },
-    export_data(type) {
+    exportData(type) {
       this.$Loading.start()
       axios
         .get(
