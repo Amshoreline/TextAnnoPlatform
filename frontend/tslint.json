@@ -28,6 +28,7 @@
     "ordered-imports": false,
     "quotemark": false,
     "object-literal-key-quotes": false,
-    "prefer-for-of": false
+    "prefer-for-of": false,
+    "comment-format": false
   }
 }
