@@ -1,8 +1,11 @@
 # TS Front-end
 
 ## Get started
-1. Bash `npm install -g @vue/cli  # choose typescript and unchoose babel`
-2. Bash `npm install`
+1. Bash `curl -sL https://deb.nodesource.com/setup_12.x | bash - `
+2. Bash `sudo apt-get install nodejs`
+3. Bash `npm install -g @vue/cli  # choose typescript and unchoose babel`
+4. Bash `npm install`
+5. Bash `npm install --save echarts`
 
 ## How to use
 
