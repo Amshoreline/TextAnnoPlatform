@@ -31,13 +31,13 @@
                 </Col>
                 <Col span='23'>
                   <Span v-for="(label, index) in labels" :key="index">
-                    <a v-shortkey.once="['alt',label.shortcut]" @shortkey="annotate(label.id)">
+                    <a v-shortkey.once="label? label.shortcut.split('+'): ''" @shortkey="annotate(label.id)">
                       <Tag @click.native="annotate(label.id)" :color="label.bg_color" size='large' style="font-size:16px">
-                        {{ label.name }} - {{ label.shortcut }}
+                        {{ label.name }}{{ label.shortcut? ' - '+label.shortcut: '' }}
                       </Tag>
                     </a>&nbsp;
                   </Span>
-                  <Poptip trigger="hover" title="提示" word-wrap width='150' content="标签 - 快捷键，快捷键为 'alt' + 字母；在标注上单击右键可取消标注" placement="right-start">
+                  <Poptip trigger="hover" title="提示" word-wrap width='150' content="标签 - 快捷键；在标注上单击右键可取消标注" placement="right-start">
                     <Icon size='20' type="ios-help-circle-outline" />
                   </Poptip>
                 </Col> 
@@ -100,7 +100,7 @@
           <!-- 显示 -->
           <Row>
             <Col span="24">
-              <Card style="height:100%;margin-right:10px">
+              <Card style="height:100%;">
                 <span style="margin:0 10px 0px 5px"><Icon type="md-paper-plane" /></span>实体显示
                 <div style="margin:8px 0;"></div>
                 <div style="margin-left:7px">
@@ -109,9 +109,9 @@
               </Card>
             </Col>
           </Row>
-          <Row>
+          <Row style="margin-top:10px">
             <Col span="24">
-              <Card style="height:100%">
+              <Card style="height:100%;">
                 <span style="margin:0 10px 0 8px"><Icon type="ios-pulse" /></span>关系显示
                 <div style="margin:8px 0;"></div>
                 <div style="padding-left:7px">
@@ -125,8 +125,7 @@
             </Col>
           </Row>
           <Card style="margin-top:10px">
-            <div id="graph" style="text-align:center; width:100%; min-height:600px">
-              <h1>显示关系图谱</h1>
+            <div id="graph" style="text-align:center; width:100%;  min-height:600px;">
             </div>
           </Card>
         </Content>
@@ -190,7 +189,7 @@ export default {
         start_offset_key: 'start_offset',
         end_offset_key: 'end_offset',
       },
-      my_echart: null,
+      my_echarts: null,
       jsPlumb: null,
       jsplumb_setting: { // 很多连接线，它们的样式是相同的，所以定义一个默认配置
         Anchor: 'Top', // Anchor:['Top', 'Bottom'],'Continuous',
@@ -343,7 +342,6 @@ export default {
       let valiable = url.split('&')[0] + '&index=' + index
       window.history.pushState({}, 0, valiable)
       this.post_data.text_id = this.document_info.id
-      // console.log(this.$route.query.index)
       this.refreshGraph()
     },
     // 换页
@@ -431,7 +429,6 @@ export default {
         this.entity = window.getSelection().toString()
         this.start_offset = start
         this.end_offset = end
-        // console.log(start, end, this.entity)
       }
     },
     // 判断范围是否合理
@@ -470,9 +467,10 @@ export default {
           },
         )
         this.updateAnnotation()
-      } else {
-        this.$Message.error('标注有误')
       }
+      // else {
+      //   this.$Message.error('标注有误')
+      // }
     },
     // 更新标注
     updateAnnotation() {
@@ -565,9 +563,6 @@ export default {
               return $("<span style='background-color: white; padding:4px 4px;line-height:1em;border-radius:7px;color:#2f54eb;font-weight:bold;font-family:serif;'>(desc)</span>")
             },
             events: {
-              // click: function(labelOverlay, originalEvent) {
-              //   _this.updateRelationship(labelOverlay.getElement(), labelOverlay.id)
-              // },
               click: (labelOverlay, originalEvent) => {
                 _this.updateRelationship(labelOverlay.getElement(), labelOverlay.id)
               },
@@ -703,6 +698,7 @@ export default {
         _this.connectionAll()
       })
     },
+    // 点击刷新关系图
     refreshGraph() {
       let _categories = []
       let nodes = []
@@ -760,75 +756,21 @@ export default {
           name: r.label,
         })
       }
-      let option = this.my_echart.getOption()
+      let option = this.my_echarts.getOption()
       option.series[0].data = nodes
       option.series[0].links = _links
       option.series[0].categories = _categories
-      this.my_echart.setOption(option)
+      this.my_echarts.hideLoading()
+      this.my_echarts.setOption(option)
     },
     myEcharts() {
-      // 1. 假设 node 是标签+所有实体
-      // 2. 把每个标签和其对应实体连上
-      /*
-      let _categories = []
-      let nodes = []
-      let _links = []
-      let ann = this.document_info.annotation
-      let res = this.document_info.relation
-      let len1 = this.labels.length
-      let len2 = ann.length
-      let len3 = res.length
-      // console.log(res)
-      for (let i = 0; i < len1; i++) {
-        let label_id = this.labels[i].id
-        _categories[i] = {
-          id: label_id,
-          name: this.labels[i].name,
-        }
-        nodes.push({
-          id: this.labels[i].id,
-          name: this.labels[i].name.substr(0, 5),
-          desc: this.labels[i].name,
-          symbolSize: 80,
-          label: {
-            normal: {
-              position: 'inside',
-            },
-          },
-          category: i,
-        })
-        // 标签对应的实体
-        for (let j = 0; j < len2; ++j) {
-          if (ann[j].label_id == label_id) {
-            let node_name = ann[j].entity
-            if (node_name.length > 3) {
-              node_name = node_name.substr(0, 3) + "..."
-            }
-            nodes.push({
-              id: ann[j].id,
-              name: node_name,
-              desc: ann[j].entity,
-              symbolSize: 50,
-              category: i,
-            })
-            _links.push({
-              source: label_id,
-              target: ann[j].id,
-              name: '',
-            })
-          }
-        }
-      }
-      for (let i = 0; i < len3; ++i) {
-        let r = res[i]
-        _links.push({
-          source: r.source,
-          target: r.target,
-          name: r.label,
-        })
-      }
-*/
+      let _this = this
       let option = {
+        // 调色盘
+        // color: ['#dd6b66', '#759aa0', '#e69d87', '#8dc1a9', '#ea7e53', '#eedd78', '#73a373', '#73b9bc', '#7289ab', '#91ca8c','#f49f42'],
+        color: ['#c23531', '#2f4554', '#61a0a8', '#d48265', '#91c7ae', '#749f83',  '#ca8622', '#bda29a', '#6e7074', '#546570', '#c4ccd3'],
+        // color: ['#37A2DA', '#32C5E9', '#67E0E3', '#9FE6B8', '#FFDB5C', '#ff9f7f',
+        // '#fb7293', '#E062AE', '#E690D1', '#e7bcf3', '#9d96f5', '#8378EA', '#96BFFF'],
         // 鼠标放上去节点提示框的配置
         tooltip: {
           formatter: (x) => {
@@ -840,18 +782,46 @@ export default {
           // 显示工具箱
           show: true,
           x: '1px',
-          y: '20px',
+          y: '30px',
+          orient: 'vertical',
           feature: {
-            // mark: {
-            //   show: true
-            // },
-            // 还原
-            restore: {
-              show: true
+            dataView: {
+              readOnly: true,
+              show: true,
+              title: '',
+              lang: ['', '关闭', '刷新'],
+              optionToContent: (opt) => {
+                let relas = _this.document_info.relation
+                if (relas) {
+                  let table = '<table width="666px" style="line-height: 36px;"><thead><tr>'
+                              + '<th width="222px">实体1</th>'
+                              + '<th width="222px">实体2</th>'
+                              + '<th width="222px">关系</th>'
+                              + '</tr></thead><tbody'
+                  for (let i = 0, l = relas.length; i < l; i++) {
+                    let rela = relas[i]
+                    table += '<tr>'
+                      + '<td>' + rela.source_entity + '</td>'
+                      + '<td>' + rela.target_entity + '</td>'
+                      + '<td>' + rela.label + '</td>'
+                      + '</tr>'
+                  }
+                  table += '</tbody></table>'
+                  return '<fieldset style="width:666px; margin: 0 auto"><legend>关系数据视图</legend>' + table + '</fieldset>'
+                }
+              },
             },
-            // 保存为图片
+            myRefresh: {
+                show: true,
+                title: '刷新关系图',
+                icon: 'path://M3.8,33.4 M47,18.9h9.8V8.7 M56.3,20.1 C52.1,9,40.5,0.6,26.8,2.1C12.6,3.7,1.6,16.2,2.1,30.6 M13,41.1H3.1v10.2 M3.7,39.9c4.2,11.1,15.8,19.5,29.5,18 c14.2-1.6,25.2-14.1,24.7-28.5',
+                onclick: () => {
+                  _this.refreshGraph()
+                },
+            },
             saveAsImage: {
               show: true,
+              title: '保存为图片',
             },
           },
         },
@@ -876,6 +846,7 @@ export default {
             normal: {
               textStyle: { // 文字样式
                 fontSize: 16,
+                color: '#4b565b',
               },
               show: true,
               formatter: (x) => { // 通过回调函数设置连线上的标签
@@ -887,7 +858,7 @@ export default {
           symbolSize: 50, // [100, 30]
           force: {
             repulsion: [100, 1000], // 节点之间的斥力因子。支持数组表达斥力范围，值越大斥力越大。
-            edgeLength: [10, 200],
+            edgeLength: [10, 220],
             gravity : 0.15, // 节点受到的向中心的引力因子。该值越大节点越往中心点
           },
           // 连线的样式
@@ -895,6 +866,7 @@ export default {
             normal: {
               width: 2,
               color: '#4b565b',
+              curveness: 0.3,
             },
           },
           // 节点的文字
@@ -924,17 +896,14 @@ export default {
           // categories: _categories,
         }],
       }
-      this.my_echart.setOption(option)
+      this.my_echarts.setOption(option)
       this.refreshGraph()
-      // my_echart.on('mouseover', function(params){
-      //   console.log(res)
-      // })
     },
     async init() {
       await this.queryLabel()
       await this.query()
       let echarts = require('echarts')
-      this.my_echart = echarts.init(document.getElementById('graph'))
+      this.my_echarts = echarts.init(document.getElementById('graph'))
       this.myEcharts()
     },
   },
@@ -987,7 +956,7 @@ export default {
               //   tuple.start_offset,
               //   tuple.end_offset
               // )
-              bg_color: this.getLabelById(tuple.label_id).bg_color,
+              bg_color: this.getLabelById(tuple.label_id) ? this.getLabelById(tuple.label_id).bg_color : '#fff',
             },
           )
           left = tuple.end_offset
@@ -1011,7 +980,7 @@ export default {
               //   tuple.end_offset
               // ),
               text: tuple.entity,
-              bg_color: this.getLabelById(tuple.label_id).bg_color,
+              bg_color: this.getLabelById(tuple.label_id) ? this.getLabelById(tuple.label_id).bg_color : '#fff',
             },
           )
           left = tuple.end_offset
@@ -1051,7 +1020,7 @@ export default {
             {
               label_type: tuple.label_type,
               text: tuple.entity,
-              bg_color: this.getLabelById(tuple.label_id).bg_color,
+              bg_color: this.getLabelById(tuple.label_id) ? this.getLabelById(tuple.label_id).bg_color : '#fff',
             },
           )
         }

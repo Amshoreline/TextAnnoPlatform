@@ -15,7 +15,7 @@ Vue.prototype.$echarts = echarts
 Vue.config.productionTip = false
 
 Vue.use(ViewUI)
-Vue.use(require('vue-shortkey'))
+Vue.use(require('vue-shortkey'), { prevent: ['input', 'select', 'textarea'] })
 
 new Vue({
     store,
